@@ -1,0 +1,38 @@
+#include "turnfoldannotation.h"
+#include "halfedge2d.h"
+#include "gldrawutil.h"
+TurnEdgeAnnotation::TurnEdgeAnnotation(Halfedge2d *_he1, Halfedge2d *_he2, QObject *parent)
+    :Annotation(QObject *parent)
+{
+    setHe1(_he1);
+    setHe2(_he2);
+    setColor(QColor(240,240,160));
+    setSize(getHe1()->getSize());
+}
+
+Halfedge2d *TurnEdgeAnnotation::getHe1() const
+{
+    return he1;
+}
+
+void TurnEdgeAnnotation::setHe1(Halfedge2d *value)
+{
+    he1 = value;
+}
+
+Halfedge2d *TurnEdgeAnnotation::getHe2() const
+{
+    return he2;
+}
+
+void TurnEdgeAnnotation::setHe2(Halfedge2d *value)
+{
+    he2 = value;
+}
+
+void TurnEdgeAnnotation::draw()
+{
+    glLineWidth(getSize());
+    glColor3d((float)getColor().red()/255, (float)getColor().green()/255, (float)getColor().blue()/255);  
+    GLDrawUtil::drawArrow2D(he1->getCenter(), he2->getCenter());
+}

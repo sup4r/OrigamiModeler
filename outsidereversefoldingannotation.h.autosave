@@ -1,0 +1,32 @@
+#ifndef OUTSIDEREVERSEFOLDINGANNOTATION_H
+#define OUTSIDEREVERSEFOLDINGANNOTATION_H
+#include "annotation.h"
+class Halfedge2d;
+class Face3d;
+class OutsideReverseFoldingAnnotation : public Annotation
+{
+    Q_OBJECT
+public:
+    OutsideReverseFoldingAnnotation(Halfedge2d *_he1, Halfedge2d *_he2, QObject *parent = 0);
+    ~OutsideReverseFoldingAnnotation();
+
+    Halfedge2d *getHe1() const;
+    void setHe1(Halfedge2d *value);
+    
+    Halfedge2d *getHe2() const;
+    void setHe2(Halfedge2d *value);
+    
+    QVector<Halfedge2d*>getGlueHalfedge2ds();
+    
+protected:
+    void draw();
+private:
+    Halfedge2d *he1, *he2;
+    QVector3D getOverlapPoint();
+    bool isOverlapVertexSV1EV2();
+public slots:
+signals:
+    void deleted(Halfedge2d *_he1, Halfedge2d *_he2);
+};
+
+#endif // OUTSIDEREVERSEFOLDINGANNOTATION_H
