@@ -45,24 +45,29 @@ class Canvas2d : public CanvasBase
 private:
     QVector<QPoint> kouhoPoints;
     QPoint kouhoPoint;
+    QVector<Halfedge2d*> mirrorEdges;
     std::string filePath;
     int saveAndLoadCount = 0;
     void trashCurrentModel2();
     void positionAdjust();
     void adjust_parallel(Halfedge2d *he, Halfedge2d *he2);
     void adjust_nearPoint(Halfedge2d *he, Halfedge2d *he2);
-    Vertex2d getCenter(Face2d *f);
+    QPoint getCenter(Face2d *f);
     QVector<Halfedge2d*>  halfFoldEdges;
     QVector<int> halfFoldEdgesAmount;
     QPoint startPos;
     QPoint goalPos;
     void autoAnnotation();
+    void autoHalfFold();
     QPoint clossPoint(QPoint p1, QPoint p2,QPoint p3, QPoint p4);
+    int length(QPoint p1 , QPoint p2);
+    double lengthV(Vertex2d *p1, Vertex2d *p2);
     bool is_parallel(Halfedge2d *he, Halfedge2d *he2);
     void setID();
     void createHalfFoldWithStackEdges();
     void removeHalfFoldWithStackEdges();
     void keyPress_B();
+    int distance(Vertex2d *v1, Vertex2d *v2);
 public slots:
     void autoVertex();
 public:
@@ -72,6 +77,8 @@ public:
     QPoint snapPos2();
 public slots:
     void loadFromFile3();
+signals:
+    void fukuramiAdded(Halfedge2d*, Halfedge2d*);
     /* tuika @ 2018 fin */
 public:
     Canvas2d(QWidget *parent = 0);

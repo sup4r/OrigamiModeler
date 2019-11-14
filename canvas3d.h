@@ -29,6 +29,9 @@ public:
 private:
     // dont touch directly
     Canvas2d *canvas2d;
+    bool isShiftKeyBeenPressing;
+    float rotateAngle;
+    int clickPosX;
 public:
     void setCanvas2d(Canvas2d *c);
     Canvas2d *getCanvas2d();
@@ -49,6 +52,7 @@ protected:
     void mouseDoubleClickEvent(QMouseEvent *event); 
     void wheelEvent(QWheelEvent *wEvent);
     void keyPressEvent(QKeyEvent *event);
+    void keyReleaseEvent(QKeyEvent *event);
     void enterEvent(QEvent *event);
 private:
     /* Create Object*/ //tukattenai -> 7/20 Edited for PleatFoldBridge; DONT model->addObject here, use Canvas3d::AddFace later
@@ -187,6 +191,8 @@ signals:
     void faceAdded();
     void updated();
 public slots:
+    void createFukurami(Halfedge2d*, Halfedge2d*);
+
     void addFace(Face3d *face3d);
     void addFaceFromC2d(Face3d *face3d);
     void slotKeyPressEvent(QKeyEvent *event);

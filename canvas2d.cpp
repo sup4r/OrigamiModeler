@@ -69,7 +69,7 @@ Canvas2d::Canvas2d(QWidget *parent)
     firstHalfedge = NULL;
     lastHalfedge = NULL;
     texture = NULL;
-    setSnapFlag(0);
+    setSnapFlag(1);
     dGrid = 15;
     setMouseTracking(true);
     isShiftKeyBeenPressing = false;
@@ -129,91 +129,303 @@ void Canvas2d::setCanvas3d(Canvas3d *c)
     connect(this, SIGNAL(mirrorConnectRemoved(QVector<Halfedge2d*>)), canvas3d, SLOT(deleteMirrorConnect(QVector<Halfedge2d*>)));
     connect(this, SIGNAL(mirrorRotated(MirrorPlane*,int)), canvas3d, SLOT(rotateMirrorPlane(MirrorPlane*,int)));
     connect(this, SIGNAL(mirrorScaled(MirrorPlane*,int)), canvas3d, SLOT(scaleMirrorPlane(MirrorPlane*,int)));
+
+    connect(this, SIGNAL(fukuramiAdded(Halfedge2d*,Halfedge2d*)), canvas3d, SLOT(createFukurami(Halfedge2d*,Halfedge2d*)));
 }
 /* tuika @ 2018 */
 void Canvas2d::autoAnnotation(){
     unselectAll();
+    // sinkfold tucking
+    Halfedge2d *hee = halfedgeAtPosition(startPos);
+    if(hee != NULL){
+        Halfedge2d *hee2 = halfedgeAtPosition(goalPos);
+        if(hee2 != NULL){
+            //std::cout << "release edge dayo" << std::endl;
+            selectHalfedge(hee);
+            createOrikomiEdgeAnnotationOnSelectedEdge();
+            return;
+        }
+        Face2d *ff  = faceAtPosition(goalPos);
+        if(ff !=NULL){
+            //std::cout << "release face dayo" << std::endl;
+            selectHalfedge(hee);
+            createSinkFoldWithSelectedEdge();
+            return;
+        }
+        return;
+    }
+
+    // insidereverse outsidereverse pleatsfold piglegs
     Face2d *f  = faceAtPosition(startPos);
     Face2d *f2  = faceAtPosition(goalPos);
     if(f == NULL) return;
     if(f2 == NULL) return;
-    if(f != f2){
+    if(f != f2){ //inside outside pleat
         Halfedge2d *he = f->halfedge;
-        Halfedge2d *he2;
-        bool flag_he4 = false;
-        Halfedge2d *he4;
+        Halfedge2d *he2 = f2->halfedge;
+        Halfedge2d *selectEdge1 = nullptr;
+        Halfedge2d *selectEdge2 = nullptr;
+        Halfedge2d *selectEdge3 = nullptr;
+        bool flag_se1 = false;
+        bool flag_se2 = false;
+        bool flag_se3 = false;
+        bool flag_reversefold = false;
+        bool flag_pleatfold = false;
         do{
-            QPoint p = clossPoint(startPos, goalPos, QPoint(he->vertex->x, he->vertex->y), QPoint(he->vertex_next->x, he->vertex_next->y));
-            //std::cout << pp.x() <<" " << pp.y() << std::endl;
-            he2 = halfedgeAtPosition(p);
-            if(he2 != NULL && he2->getFace() != f){
-                Halfedge2d *he3 = f->halfedge;
-                do{
-                    if(is_parallel(he2,he3)){
-                        he2 = he3;
-                    }
-                    he3 = he3 -> next;
-                }while(he3 != f->halfedge);
-            }
-            if(he2 != NULL && !(min(startPos.x(),goalPos.x()) < p.x() && p.x() < max(startPos.x(),goalPos.x()) && min(startPos.y(),goalPos.y()) < p.y() && p.y() < max(startPos.y(),goalPos.y()))) {
-                selectHalfedge(he2);
-            }
-            if(he2 != NULL && (min(startPos.x(),goalPos.x()) < p.x() && p.x() < max(startPos.x(),goalPos.x()) && min(startPos.y(),goalPos.y()) < p.y() && p.y() < max(startPos.y(),goalPos.y()))) {
-                he4 = he2;
-                flag_he4 = true;
-            }
+            do{
+                if(is_parallel(he,he2)){
+                    //std::cout << "parallel" << std::endl;
+                    selectEdge2 = he;
+                    selectEdge3 = he2;
+                    //selectEdge2->setColor(QColor(255,0,0));
+                    //selectEdge3->setColor(QColor(255,0,0));
+                    //return;
+                    flag_se2 = true;
+                    flag_se3 = true;
+                }
+                he2 = he2 -> next;
+            }while(he2 != f2->halfedge);
             he = he -> next;
         }while(he != f->halfedge);
-        std::cout << "a" << std::endl;
-        if(flag_he4) selectHalfedge(he4);
-        std::cout << "b" << std::endl;
-        he = f2->halfedge;
-        do{
-            QPoint p = clossPoint(startPos, goalPos, QPoint(he->vertex->x, he->vertex->y), QPoint(he->vertex_next->x, he->vertex_next->y));
-            he2 = halfedgeAtPosition(p);
-            if(he2 != NULL && he2->getFace() != f2){
-                Halfedge2d *he3 = f2->halfedge;
-                do{
-                    if(is_parallel(he2,he3)){
-                        he2 = he3;
+        if(flag_se2 && flag_se3){
+            int count = 0;
+            Halfedge2d *tmp = f->halfedge;
+            do{
+                count += 1;
+                tmp = tmp -> next;
+            }while(tmp != f->halfedge);
+            if ((distance(selectEdge2->vertex,selectEdge3->vertex) <=2 || distance(selectEdge2->vertex,selectEdge3->vertex_next)<=2) && (distance(selectEdge2->vertex_next,selectEdge3->vertex) <=2 || distance(selectEdge2->vertex_next,selectEdge3->vertex_next)<=2)){
+                //flag_pleatfold = true;
+                selectEdge1 = selectEdge2->next;
+                flag_se1 = true;
+                flag_reversefold = true;
+            }
+            else if(distance(selectEdge2->vertex,selectEdge3->vertex) <=2 || distance(selectEdge2->vertex,selectEdge3->vertex_next)<=2){ //inside outside
+                /*if(count == 3){
+                    std::cout << "3" << std::endl;
+                    if(distance(selectEdge2->next->vertex,selectEdge2->next->vertex_next) > distance(selectEdge2->prev->vertex,selectEdge2->prev->vertex_next)){
+                        selectEdge1 = selectEdge2->prev;
+                    }else{
+                        selectEdge1 = selectEdge2->next;
                     }
-                    he3 = he3 -> next;
-                }while(he3 != f2->halfedge);
+                }else{
+                    selectEdge1 = selectEdge2->prev;
+                }*/
+                selectEdge1 = selectEdge2->prev;
+                flag_se1 = true;
+                flag_reversefold = true;
+            }else if(distance(selectEdge2->vertex_next,selectEdge3->vertex) <=2 || distance(selectEdge2->vertex_next,selectEdge3->vertex_next)<=2){
+                /*if(count == 3){
+                    std::cout << "3" << std::endl;
+                    if(distance(selectEdge2->next->vertex,selectEdge2->next->vertex_next) > distance(selectEdge2->prev->vertex,selectEdge2->prev->vertex_next)){
+                        selectEdge1 = selectEdge2->prev;
+                    }else{
+                        selectEdge1 = selectEdge2->next;
+                    }
+                }else{
+                    selectEdge1 = selectEdge2->next;
+                }*/
+                selectEdge1 = selectEdge2->next;
+                flag_se1 = true;
+                flag_reversefold = true;
+            }else{//pleat
+                flag_pleatfold = true;
             }
-            if(he2 != NULL && (min(startPos.x(),goalPos.x()) < p.x() && p.x() < max(startPos.x(),goalPos.x()) && min(startPos.y(),goalPos.y()) < p.y() && p.y() < max(startPos.y(),goalPos.y()))) {
-                selectHalfedge(he2);
-            }
-            he = he -> next;
-        }while(he != f2->halfedge);
 
-        if(halfedgesSelected.size()!=3){
+            if(flag_reversefold){
+                std::cout << "reverse" << std::endl;
+                //selectEdge1->setColor(QColor(255,0,0));
+                //selectEdge3->setColor(QColor(255,0,0));
+                //return;
+                selectHalfedge(selectEdge1);
+                selectHalfedge(selectEdge3);
+                createInsideReverseFoldWithSelectEdges();
+
+                // repositioning
+                double x1 = (double)selectEdge1->vertex->x;
+                double x2 = (double)selectEdge1->vertex_next->x;
+                double y1 = (double)selectEdge1->vertex->y;
+                double y2 = (double)selectEdge1->vertex_next->y;
+                double a;
+                double b;
+
+                if((int)x2 == (int)x1){
+                    a=9999;
+                    b = 0;
+                }else{
+                    a = (y2-y1)/(x2-x1);
+                    b = y1 - x1 * a;
+                }
+
+                int count=0;
+                Halfedge2d *heTmp = f2->halfedge;
+                do{
+                    count++;
+                    heTmp = heTmp -> next;
+                }while(heTmp != f2->halfedge);
+
+                double minDis = 5;
+                if(count == 3){
+                    Vertex2d *v = selectEdge1->next->vertex;
+                    Vertex2d *v2 = selectEdge1->next->vertex_next;
+                    Vertex2d *v3 = selectEdge1->prev->vertex;
+                    Vertex2d *v4 = selectEdge1->prev->vertex_next;
+                    QPoint p = clossPoint(QPoint(v->x,v->y),QPoint(v2->x,v2->y),QPoint(v3->x,v3->y),QPoint(v4->x,v4->y));
+                    double x0 = (double)p.x();
+                    double y0 = (double)p.y();
+                    int posX = (int)((2*a*y0+(1-a*a)*x0-2*a*b)/(1+a*a));
+                    int posY = (int)(((2*a*y0+(1-a*a)*x0-2*a*b)/(1+a*a))*a + a*x0 + 2*b -y0);
+
+                    // pTmp is positionOfselectEdge3 pTmp2 is position of selectEdge1
+                    if(distance(selectEdge1->vertex,selectEdge3->vertex) <=2){
+                        QPoint pTmp = clossPoint(QPoint(v3->x,v3->y),QPoint(v4->x,v4->y),QPoint(v->x,v->y),QPoint(posX,posY));
+                        QPoint pp = clossPoint(QPoint(selectEdge3->next->vertex->x,selectEdge3->next->vertex->y), QPoint(selectEdge3->next->vertex_next->x,selectEdge3->next->vertex_next->y),
+                                               QPoint(selectEdge1->vertex->x,selectEdge1->vertex->y), QPoint(selectEdge1->vertex_next->x,selectEdge1->vertex_next->y));
+                        if (min(lengthV(new Vertex2d(posX,posY), selectEdge3->next->vertex_next) , lengthV(new Vertex2d(pp.x(),pp.y()), selectEdge1->vertex_next)) > minDis) return;
+                        if (lengthV(new Vertex2d(posX,posY), selectEdge3->next->vertex_next) < lengthV(new Vertex2d(pp.x(),pp.y()), selectEdge1->vertex_next)){
+                            selectEdge3->next->vertex_next->setPosition(posX, posY);
+                            selectEdge3->vertex_next->setPosition(pTmp.x(),pTmp.y());
+                        }else{
+                            selectEdge1->vertex_next->setPosition(pp.x(),pp.y());
+                        }
+                    }else if(distance(selectEdge1->vertex,selectEdge3->vertex_next) <=2){
+                        QPoint pTmp = clossPoint(QPoint(v3->x,v3->y),QPoint(v4->x,v4->y),QPoint(v->x,v->y),QPoint(posX,posY));
+                        QPoint pp = clossPoint(QPoint(selectEdge3->prev->vertex->x,selectEdge3->prev->vertex->y), QPoint(selectEdge3->prev->vertex_next->x,selectEdge3->prev->vertex_next->y),
+                                               QPoint(selectEdge1->vertex->x,selectEdge1->vertex->y), QPoint(selectEdge1->vertex_next->x,selectEdge1->vertex_next->y));
+                        if (min(lengthV(new Vertex2d(posX,posY), selectEdge3->next->vertex_next) , lengthV(new Vertex2d(pp.x(),pp.y()), selectEdge1->vertex_next)) > minDis) return;
+                        if (lengthV(new Vertex2d(posX,posY), selectEdge3->next->vertex_next) < lengthV(new Vertex2d(pp.x(),pp.y()), selectEdge1->vertex_next)){
+                            selectEdge3->next->vertex_next->setPosition(posX, posY);
+                            selectEdge3->vertex->setPosition(pTmp.x(),pTmp.y());
+                        }else{
+                            selectEdge1->vertex_next->setPosition(pp.x(),pp.y());
+                        }
+                    }else if(distance(selectEdge1->vertex_next,selectEdge3->vertex) <=2){
+                        QPoint pTmp = clossPoint(QPoint(v->x,v->y),QPoint(v2->x,v2->y),QPoint(v4->x,v4->y),QPoint(posX,posY));
+                        QPoint pp = clossPoint(QPoint(selectEdge3->next->vertex->x,selectEdge3->next->vertex->y), QPoint(selectEdge3->next->vertex_next->x,selectEdge3->next->vertex_next->y),
+                                               QPoint(selectEdge1->vertex->x,selectEdge1->vertex->y), QPoint(selectEdge1->vertex_next->x,selectEdge1->vertex_next->y));
+                        if (min(lengthV(new Vertex2d(posX,posY), selectEdge3->next->vertex_next) , lengthV(new Vertex2d(pp.x(),pp.y()), selectEdge1->vertex)) > minDis) return;
+                        if (lengthV(new Vertex2d(posX,posY), selectEdge3->next->vertex_next) < lengthV(new Vertex2d(pp.x(),pp.y()), selectEdge1->vertex)){
+                            selectEdge3->next->vertex_next->setPosition(posX, posY);
+                            selectEdge3->vertex_next->setPosition(pTmp.x(),pTmp.y());
+                        }else{
+                            selectEdge1->vertex->setPosition(pp.x(),pp.y());
+                        }
+                    }else if(distance(selectEdge1->vertex_next,selectEdge3->vertex_next) <=2){
+                        QPoint pTmp = clossPoint(QPoint(v->x,v->y),QPoint(v2->x,v2->y),QPoint(v4->x,v4->y),QPoint(posX,posY));
+                        QPoint pp = clossPoint(QPoint(selectEdge3->prev->vertex->x,selectEdge3->prev->vertex->y), QPoint(selectEdge3->prev->vertex_next->x,selectEdge3->prev->vertex_next->y),
+                                               QPoint(selectEdge1->vertex->x,selectEdge1->vertex->y), QPoint(selectEdge1->vertex_next->x,selectEdge1->vertex_next->y));
+                        if (min(lengthV(new Vertex2d(posX,posY), selectEdge3->next->vertex_next) , lengthV(new Vertex2d(pp.x(),pp.y()), selectEdge1->vertex)) > minDis) return;
+                        if (lengthV(new Vertex2d(posX,posY), selectEdge3->next->vertex_next) < lengthV(new Vertex2d(pp.x(),pp.y()), selectEdge1->vertex)){
+                            selectEdge3->next->vertex_next->setPosition(posX, posY);
+                            selectEdge3->vertex->setPosition(pTmp.x(),pTmp.y());
+                        }else{
+                            selectEdge1->vertex->setPosition(pp.x(),pp.y());
+                        }
+                    }
+                }
+            }
+            if(flag_pleatfold){
+                std::cout << "pleat" << std::endl;
+                //return;
+                selectHalfedge(selectEdge2);
+                selectHalfedge(selectEdge3);
+                createPleatFoldWithSelectEdges();
+
+                int count=0;
+                Halfedge2d *heTmp = f2->halfedge;
+                do{
+                    count++;
+                    heTmp = heTmp -> next;
+                }while(heTmp != f2->halfedge);
+
+                double minDis = 5;
+                if (count==3){
+                    Vertex2d *v = selectEdge2->next->vertex;
+                    Vertex2d *v2 = selectEdge2->next->vertex_next;
+                    Vertex2d *v3 = selectEdge2->prev->vertex;
+                    Vertex2d *v4 = selectEdge2->prev->vertex_next;
+                    QPoint pTmp = clossPoint(QPoint(v3->x,v3->y),QPoint(v4->x,v4->y),QPoint(v->x,v->y),QPoint(v2->x,v2->y));
+                    double soujihi = lengthV(selectEdge3->vertex,selectEdge3->vertex_next) / lengthV(selectEdge2->vertex,selectEdge2->vertex_next);
+                    QPoint mid = QPoint((selectEdge3->vertex->x + selectEdge3->vertex_next->x)/2, (selectEdge3->vertex->y + selectEdge3->vertex_next->y)/2);
+                    QPoint pTmp2 = QPoint(mid.x() + soujihi * (pTmp.x() - mid.x()), mid.y() + soujihi * (pTmp.y() - mid.y()));
+
+                    if(length(pTmp, QPoint(selectEdge3->next->vertex_next->x,selectEdge3->next->vertex_next->y))<minDis){
+                        selectEdge3->next->vertex_next->setPosition(pTmp2.x(),pTmp2.y());
+                    }
+                }
+            }
+        }
+        return;
+
+        /*if(halfedgesSelected.size()!=3){
             unselectAll();
             return;
-        }{
+        }else{
             Halfedge2d *he = halfedgesSelected.at(0);
             Halfedge2d *he2 = halfedgesSelected.at(1);
             Halfedge2d *he3 = halfedgesSelected.at(2);
-            QPoint p1 = QPoint(he2->vertex->x, he2->vertex->y);
-            QPoint p2 = QPoint(he2->vertex_next->x, he2->vertex_next->y);
+            QPoint p1 = QPoint(he->vertex->x, he->vertex->y);
+            QPoint p2 = QPoint(he->vertex_next->x, he->vertex_next->y);
             QPoint p3 = QPoint(he3->vertex->x, he3->vertex->y);
             QPoint p4 = QPoint(he3->vertex_next->x, he3->vertex_next->y);
-            if(abs(p1.x()-p3.x())<=1 && abs(p1.y()-p3.y())<=1){
-                unselectHalfedge(he2);
-                createInsideReverseFoldWithSelectEdges();
-            }else if(abs(p1.x()-p4.x())<=1 && abs(p1.y()-p4.y())<=1){
-                unselectHalfedge(he2);
-                createInsideReverseFoldWithSelectEdges();
-            }else if(abs(p2.x()-p3.x())<=1 && abs(p2.y()-p3.y())<=1){
-                unselectHalfedge(he2);
-                createInsideReverseFoldWithSelectEdges();
-            }else if(abs(p2.x()-p4.x())<=1 && abs(p2.y()-p4.y())<=1){
-                unselectHalfedge(he2);
-                createInsideReverseFoldWithSelectEdges();
-            }else{
+            // nakawari or kabuse repositioning
+            if((abs(p1.x()-p3.x())<=1 && abs(p1.y()-p3.y())<=1)||(abs(p1.x()-p4.x())<=1 && abs(p1.y()-p4.y())<=1)||(abs(p2.x()-p3.x())<=1 && abs(p2.y()-p3.y())<=1)||(abs(p2.x()-p4.x())<=1 && abs(p2.y()-p4.y())<=1)){
+                double x1 = (double)he->vertex->x;
+                double x2 = (double)he->vertex_next->x;
+                double y1 = (double)he->vertex->y;
+                double y2 = (double)he->vertex_next->y;
+                double a;
+                double b;
+
+                if(x2 == x1){
+                    a=9999;
+                    b = 0;
+                }else{
+                    a = (y2-y1)/(x2-x1);
+                    b = y1 - x1 * a;
+                }
+
+                Vertex2d *v = he->next->vertex;
+                Vertex2d *v2 = he->next->vertex_next;
+                Vertex2d *v3 = he->prev->vertex;
+                Vertex2d *v4 = he->prev->vertex_next;
+                QPoint p = clossPoint(QPoint(v->x,v->y),QPoint(v2->x,v2->y),QPoint(v3->x,v3->y),QPoint(v4->x,v4->y));
+                double x0 = (double)p.x();
+                double y0 = (double)p.y();
+
+                int count=0;
+                Halfedge2d *heTmp = f2->halfedge;
+                do{
+                    count++;
+                    heTmp = heTmp -> next;
+                }while(heTmp != f2->halfedge);
+                if(count == 3){
+                    int posX = (int)((2*a*y0+(1-a*a)*x0-2*a*b)/(1+a*a));
+                    int posY = (int)(((2*a*y0+(1-a*a)*x0-2*a*b)/(1+a*a))*a + a*x0 + 2*b -y0);
+                    if(length(QPoint(posX,posY), QPoint(he3->next->vertex_next->x,he3->next->vertex_next->y))<500){
+                        he3->next->vertex_next->setPosition(posX, posY);
+                        if(abs(p1.x()-p3.x())<=1 && abs(p1.y()-p3.y())<=1){
+                            QPoint pTmp = clossPoint(QPoint(v3->x,v3->y),QPoint(v4->x,v4->y),QPoint(v->x,v->y),QPoint(posX,posY));
+                            he3->vertex_next->setPosition(pTmp.x(),pTmp.y());
+                        }else if(abs(p1.x()-p4.x())<=1 && abs(p1.y()-p4.y())<=1){
+                            QPoint pTmp = clossPoint(QPoint(v3->x,v3->y),QPoint(v4->x,v4->y),QPoint(v->x,v->y),QPoint(posX,posY));
+                            he3->vertex->setPosition(pTmp.x(),pTmp.y());
+                        }else if(abs(p2.x()-p3.x())<=1 && abs(p2.y()-p3.y())<=1){
+                            QPoint pTmp = clossPoint(QPoint(v->x,v->y),QPoint(v2->x,v2->y),QPoint(v4->x,v4->y),QPoint(posX,posY));
+                            he3->vertex_next->setPosition(pTmp.x(),pTmp.y());
+                        }else if(abs(p2.x()-p4.x())<=1 && abs(p2.y()-p4.y())<=1){
+                            QPoint pTmp = clossPoint(QPoint(v->x,v->y),QPoint(v2->x,v2->y),QPoint(v4->x,v4->y),QPoint(posX,posY));
+                            he3->vertex->setPosition(pTmp.x(),pTmp.y());
+                        }
+                    }
+                }
+            unselectHalfedge(he2);
+            createInsideReverseFoldWithSelectEdges();
+            }else{ //pleat
                 unselectHalfedge(he);
                 createPleatFoldWithSelectEdges();
             }
-        }
+        }*/
     }else{ //pig legs
         Halfedge2d *he = f->halfedge;
         Halfedge2d *he2;
@@ -297,6 +509,26 @@ void Canvas2d::autoAnnotation(){
             return;
         }
     }
+}
+
+void Canvas2d::autoHalfFold(){
+    std::cout << "halfFOld" << std::endl;
+    Halfedge2d * he = halfedgeAtPosition(startPos);
+    if (he != NULL){
+        std::cout << "halfFOld suruyo" << std::endl;
+        halfFoldEdges.push_back(he);
+        createGlueEdgeAnnotation(he);
+        halfFoldEdgesAmount.push_back(1);
+        saveToFile2();
+    }
+}
+
+int Canvas2d::length(QPoint p1, QPoint p2){
+    return (int)sqrt((double)pow(p1.x() - p2.x(),2) + pow(p1.y() - p2.y(),2));
+}
+
+double Canvas2d::lengthV(Vertex2d *p1, Vertex2d *p2){
+    return sqrt((double)pow(p1->x - p2->x,2) + pow(p1->y - p2->y,2));
 }
 
 bool Canvas2d::is_parallel(Halfedge2d *he, Halfedge2d *he2){
@@ -430,6 +662,17 @@ bool Canvas2d::is_parallel(Halfedge2d *he, Halfedge2d *he2){
     return false;
 }
 
+int Canvas2d::distance(Vertex2d *v1, Vertex2d *v2){
+    int x1 = v1->x;
+    int x2 = v2->x;
+    int y1 = v1->y;
+    int y2 = v2->y;
+    double tmp = pow(y1-y2,2) + pow(x1-x2,2);
+    double dis = sqrt(tmp);
+    //std::cout << dis << std::endl;
+    return (int)dis;
+}
+
 QPoint Canvas2d::clossPoint(QPoint p1, QPoint p2,QPoint p3, QPoint p4){
     double A;
     double B;
@@ -468,7 +711,6 @@ void Canvas2d::positionAdjust(){
     if(model->faces.size() == 0) return;
     Face2d *f  = model->faces.at(model->faces.size()-1);
     Halfedge2d *he = f->halfedge;
-    Vertex2d v = getCenter(f);
     //std::cout << v.x << " " << v.y << std::endl;
     do{
         //std::cout << "("<<he->vertex->x<<","<<he->vertex->y<<")"<<"->"<<"("<<he->vertex_next->x<<","<<he->vertex_next->y<<")" << std::endl;
@@ -486,7 +728,7 @@ void Canvas2d::positionAdjust(){
     }while(he != f->halfedge);
 }
 
-Vertex2d Canvas2d::getCenter(Face2d *f){
+QPoint Canvas2d::getCenter(Face2d *f){
     Halfedge2d *he = f->halfedge;
     int x=0;
     int y=0;
@@ -497,7 +739,7 @@ Vertex2d Canvas2d::getCenter(Face2d *f){
         y += he->vertex->y;
         he = he -> next;
     }while(he != f->halfedge);
-    return Vertex2d(x/count,y/count);
+    return QPoint(x/count,y/count);
 }
 
 void Canvas2d::adjust_parallel(Halfedge2d *he, Halfedge2d *he2){
@@ -638,7 +880,7 @@ void Canvas2d::adjust_parallel(Halfedge2d *he, Halfedge2d *he2){
 }
 
 void Canvas2d::adjust_nearPoint(Halfedge2d *he, Halfedge2d *he2){
-    double dis = 400;
+    double dis = 50;
     if(pow(double(he->vertex->x - he2->vertex->x),2)+pow(double(he->vertex->y - he2->vertex->y),2) < dis)
     {
         he->vertex->setPosition(he2->vertex->x,he2->vertex->y);
@@ -1130,7 +1372,7 @@ void Canvas2d::resizeGL(int w, int h)
     glOrtho(0,w,h, 0,-10, 1);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    autoVertex();
+    //autoVertex();
 }
 
 void Canvas2d::paintGL()
@@ -1204,6 +1446,8 @@ void Canvas2d::keyPressEvent(QKeyEvent *event)
     }
     if(event->key() == Qt::Key_Tab){
         changeModels();
+        halfFoldEdges.clear();
+        halfFoldEdgesAmount.clear();
     }
     if(event->key() == Qt::Key_Backtab){
         backModels();
@@ -1224,6 +1468,7 @@ void Canvas2d::keyPressEvent(QKeyEvent *event)
     if(event->key() == Qt::Key_B){
         keyPress_B();
     }
+
     /* tuika @ 2018 fin */
     switch(mode){
 
@@ -1242,10 +1487,69 @@ void Canvas2d::keyPressEvent(QKeyEvent *event)
 
 
     case GLUE:
+
+        if(event->key() == Qt::Key_A){
+            if (halfedgesSelected.size() == 2 && isPossibleToCreateMirrorConnection()){
+                //qDebug() << "aa";
+                //halfedgesSelected.at(0)->vertex->setPosition(1,1);
+                //halfedgesSelected.at(1)->setColor(QColor(200,100,100));
+                emit(fukuramiAdded(halfedgesSelected.at(0),halfedgesSelected.at(1)));
+            }
+            unselectAll();
+        }
+
         if(event->key() == Qt::Key_Return){
 
         }else if(event->key() == Qt::Key_Delete){
 
+        }
+        else if(event->key() == Qt::Key_1){
+            if (mirrorEdges.size() >= 1) {
+                selectHalfedge(mirrorEdges.at(0));
+            }
+        }
+        else if(event->key() == Qt::Key_2){
+            if (mirrorEdges.size() >= 2) {
+                selectHalfedge(mirrorEdges.at(1));
+            }
+        }
+        else if(event->key() == Qt::Key_3){
+            if (mirrorEdges.size() >= 3) {
+                selectHalfedge(mirrorEdges.at(2));
+            }
+        }
+        else if(event->key() == Qt::Key_4){
+            if (mirrorEdges.size() >= 4) {
+                selectHalfedge(mirrorEdges.at(3));
+            }
+        }
+        else if(event->key() == Qt::Key_5){
+            if (mirrorEdges.size() >= 5) {
+                selectHalfedge(mirrorEdges.at(4));
+            }
+        }
+        else if(event->key() == Qt::Key_6){
+            if (mirrorEdges.size() >= 6) {
+                selectHalfedge(mirrorEdges.at(5));
+            }
+        }
+        else if(event->key() == Qt::Key_7){
+            if (mirrorEdges.size() >= 7) {
+                selectHalfedge(mirrorEdges.at(6));
+            }
+        }
+        else if(event->key() == Qt::Key_8){
+            if (mirrorEdges.size() >= 8) {
+                selectHalfedge(mirrorEdges.at(7));
+            }
+        }
+        else if(event->key() == Qt::Key_9){
+            if (mirrorEdges.size() >= 9) {
+                selectHalfedge(mirrorEdges.at(8));
+            }
+        }
+        else if(event->key() == Qt::Key_0){
+            unselectAll();
         }
         break;
     }
@@ -1267,7 +1571,8 @@ void Canvas2d::enterEvent(QEvent *event)
 
 Model2d *Canvas2d::createModel()
 {
-
+    halfFoldEdges.clear();
+    halfFoldEdgesAmount.clear();
     createAnnotationList();
     Model2d *m = new Model2d(this);
     addModel(m);
@@ -2094,6 +2399,8 @@ void Canvas2d::createInsideReverseFoldWithSelectEdges()
     removeHalfFoldWithStackEdges();
     Halfedge2d *he2 = NULL;
     Halfedge2d *he = NULL;
+    bool flag_he = false;
+    bool flag_he2 = false;
     if(halfedgesSelected.size()==2){
         /* tuika @ 2018 */
         //std::cout << " " << std::endl;
@@ -2141,16 +2448,42 @@ void Canvas2d::createInsideReverseFoldWithSelectEdges()
     }else{
         return;
     }
+    QPoint c = getCenter(he->getFace());
+    QPoint c2 = getCenter(he2->getFace());
+    QPoint ave = QPoint((he->vertex->x + he->vertex_next->x)/2, (he->vertex->y + he->vertex_next->y)/2);
+    QPoint ave2 = QPoint((he2->vertex->x + he2->vertex_next->x)/2, (he2->vertex->y + he2->vertex_next->y)/2);
+    QPoint vec = QPoint(2*ave.x() - c.x(), 2*ave.y() - c.y());
+    QPoint vec2 = QPoint(2*ave2.x() - c2.x(), 2*ave2.y() - c2.y());
+    Face2d *f = faceAtPosition(QPoint(vec.x(),vec.y()));
+    Face2d *f2 = faceAtPosition(QPoint(vec2.x(),vec2.y()));
+    if(f == NULL){
+        flag_he = true;
+    }
+    if(f2 == NULL){
+        flag_he2 = true;
+    }
     createHalfFoldWithStackEdges();
     /* tuika @ 2018*/
     halfFoldEdgesAmount.push_back(0);
     saveToFile2();
-    halfFoldEdges.push_back(he);
-    halfFoldEdges.push_back(he2);
-    createGlueEdgeAnnotation(he);
-    createGlueEdgeAnnotation(he2);
-    halfFoldEdgesAmount.push_back(2);
-    saveToFile2();
+    if(flag_he && flag_he2){
+        halfFoldEdges.push_back(he);
+        halfFoldEdges.push_back(he2);
+        createGlueEdgeAnnotation(he);
+        createGlueEdgeAnnotation(he2);
+        halfFoldEdgesAmount.push_back(2);
+        saveToFile2();
+    }else if (flag_he){
+        halfFoldEdges.push_back(he);
+        createGlueEdgeAnnotation(he);
+        halfFoldEdgesAmount.push_back(1);
+        saveToFile2();
+    }else if(flag_he2){
+        halfFoldEdges.push_back(he2);
+        createGlueEdgeAnnotation(he2);
+        halfFoldEdgesAmount.push_back(1);
+        saveToFile2();
+    }
     /* tuika @ 2018 fin */
     update();
 }
@@ -2182,6 +2515,8 @@ void Canvas2d::createPleatFoldWithSelectEdges()
 {
     if(halfedgesSelected.size()==2){
         createPleatFoldAnnotation(halfedgesSelected.at(0), halfedgesSelected.at(1));
+    }else{
+        return;
     }
     /* tuika @ 2018*/
     halfFoldEdgesAmount.push_back(0);
@@ -2194,6 +2529,8 @@ void Canvas2d::createPleatFoldWithSelectFaces()
 {
     if(facesSelected.size()==2){
         createPleatFoldAnnotation(facesSelected.at(0), facesSelected.at(1));
+    }else{
+        return;
     }
     /* tuika @ 2018*/
     halfFoldEdgesAmount.push_back(0);
@@ -2206,6 +2543,8 @@ void Canvas2d::createTurnFoldWithSelectEdges()
 {
     if(halfedgesSelected.size()==2){
         createTurnFoldAnnotation(halfedgesSelected.at(0), halfedgesSelected.at(1));
+    }else{
+        return;
     }
     /* tuika @ 2018*/
     halfFoldEdgesAmount.push_back(0);
@@ -2261,7 +2600,10 @@ void Canvas2d::createOutsideReverseFoldWithSelectEdges()
             he4->setColor(QColor(150,150,150));
             //std::cout << " d" << std::endl;
         }
+    }else{
+        return;
     }
+
     createHalfFoldWithStackEdges();
     /* tuika @ 2018*/
     halfFoldEdgesAmount.push_back(0);
@@ -2280,6 +2622,8 @@ void Canvas2d::createSinkFoldWithSelectedEdge()
 {
     if(halfedgesSelected.size()==1){
         createSinkFoldAnnotation(halfedgesSelected.at(0));
+    }else{
+        return;
     }
     /* tuika @ 2018*/
     halfFoldEdgesAmount.push_back(0);
@@ -2329,6 +2673,9 @@ void Canvas2d::createPigsLegAnnotationWithSelectedEdges()
 
 void Canvas2d::createOrikomiEdgeAnnotationOnSelectedEdge()
 {
+    if(halfedgesSelected.size()!=1){
+        return;
+    }
     for(int i = 0; i < halfedgesSelected.size(); ++i){
         createOrikomiEdgeAnnotation(halfedgesSelected.at(i));
     }
@@ -2561,6 +2908,7 @@ void Canvas2d::createMirrorConnectionBetweenSelectedEdges()
 {
    // std::cerr << isPossibleToCreateMirrorConnection() << std::endl;
     if(isPossibleToCreateMirrorConnection()){
+        createGlueEdgeAnnotation(halfedgesSelected.at(1));
         MirrorConnectAnnotation *a = createMirrorConnection(halfedgesSelected);
         addMirrorConnection(a);
         emit(mirrorConnectAdded(a->getHes()));
@@ -2637,16 +2985,17 @@ void Canvas2d::scaleSelectedMirror(int scale)
 /* mouse events */
 void Canvas2d::leftMousePressEventOfGlueMode(QMouseEvent *event)
 {
-    if(clickSelectObject(event) == NULL){
-        startPos = event->pos();
-    }else{
-        startPos.setX(0);
-        startPos.setY(0);
-    }
+    startPos = event->pos();
+    //clickSelectObject(event);
 }
 
 void Canvas2d::rightMousePressEventOfGlueMode(QMouseEvent *event)
 {
+    Halfedge2d *he;
+    he = halfedgeAtPosition(event->pos());
+    if (he != NULL){
+        selectHalfedge(he);
+    }
 }
 
 void Canvas2d::middleMousePressEventOfGlueMode(QMouseEvent *event)
@@ -2656,20 +3005,38 @@ void Canvas2d::middleMousePressEventOfGlueMode(QMouseEvent *event)
 
 void Canvas2d::leftMouseReleaseEventOfGlueMode(QMouseEvent *event)
 {
-    int dis = 600;
-    if(startPos.x() != 0 && startPos.y() !=0){
-        goalPos = event->pos();
-        if(pow(goalPos.x() - startPos.x(),2) + pow(goalPos.y() - startPos.y(), 2) > dis){
-            //std::cout << pow(goalPos.x() - startPos.x(),2) + pow(goalPos.y() - startPos.y(), 2) << std::endl;
-            autoAnnotation();
+    int dis = 50;
+    goalPos = event->pos();
+
+    // mirrorfold
+    Halfedge2d *he = halfedgeAtPosition(startPos);
+    Halfedge2d *he2 = halfedgeAtPosition(goalPos);
+    if(he != NULL && isShiftKeyBeenPressing){
+        bool flag_mirror = false;
+        for(int i=0; i<models.length(); i++){
+            changeModels();
+            if(!flag_mirror){
+                he2 = halfedgeAtPosition(goalPos);
+                if (he2 != NULL){
+                    flag_mirror = true;
+                    unselectAll();
+                    selectHalfedge(he2);
+                    selectHalfedge(he);
+                }
+            }
         }
-        //std::cout << startPos.x() << " " << startPos.y() << std::endl;
-        //std::cout << goalPos.x() << " " << goalPos.y() << std::endl;
+        if(flag_mirror){
+            createMirrorConnectionBetweenSelectedEdges();
+            unselectAll();
+            return;
+        }
+
+    }
+    if(pow(goalPos.x() - startPos.x(),2) + pow(goalPos.y() - startPos.y(), 2) > dis){
+        //std::cout << pow(goalPos.x() - startPos.x(),2) + pow(goalPos.y() - startPos.y(), 2) << std::endl;
+        autoAnnotation();
     }else{
-        goalPos.setX(0);
-        goalPos.setY(0);
-        //std::cout << startPos.x() << " " << startPos.y() << std::endl;
-        //std::cout << goalPos.x() << " " << goalPos.y() << std::endl;
+        autoHalfFold();
     }
 }
 

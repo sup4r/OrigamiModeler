@@ -34,7 +34,10 @@ Canvas3d::Canvas3d(QWidget *parent)
     lastHalfedge = NULL;
     setIsDebugMode(false);
     isDrawVertex = false;//20170323
-    setTexture(NULL);
+    //setTexture(NULL);
+    isShiftKeyBeenPressing = false;
+    rotateAngle = 45;
+    clickPosX = 0;
 
 }
 
@@ -69,13 +72,13 @@ void Canvas3d::initializeGL()
     glEnable(GL_LIGHT0);
     static GLfloat lightPosition[4] = {0,0,-1,1 };
     static GLfloat lightDiffuse[3]  = { 1.0, 1.0, 1.0  };
-    static GLfloat lightAmbient[3]  = {0.25,0.25,0.25 };
+    static GLfloat lightAmbient[3]  = { 0.25,0.25,0.25 };
     static GLfloat lightSpecular[3] = { 1.0, 1.0, 1.0  };
     glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
-//    glLightfv(GL_LIGHT0, GL_DIFFUSE,  lightDiffuse);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE,  lightDiffuse);
     glLightfv(GL_LIGHT0, GL_AMBIENT,  lightAmbient);
-//    glLightfv(GL_LIGHT0, GL_SPECULAR, lightSpecular);
-//    setupTexture();
+    glLightfv(GL_LIGHT0, GL_SPECULAR, lightSpecular);
+    //setupTexture();
 }
 
 void Canvas3d::resizeGL(int w, int h)
@@ -140,7 +143,9 @@ void Canvas3d::mouseDoubleClickEvent(QMouseEvent *event)
 
 /* Left Mouse Button Event */
 void Canvas3d::leftMousePressEvent(QMouseEvent *event){
+    clickPosX = event->pos().x();
     /* Select Object */
+    /*
     unselectAll();
     Vertex3d *vertexOnMouse = NULL;
     Halfedge3d *halfedgeOnMouse = NULL;
@@ -169,16 +174,25 @@ void Canvas3d::leftMousePressEvent(QMouseEvent *event){
     }else if(halfedgeOnMouse!=NULL){
         selectHalfedge(halfedgeOnMouse);
 
-        /*test*/
 //        qDebug()<<"id = "<<halfedgeOnMouse->getId();
     }else if(faceOnMouse!=NULL){
         selectFace(faceOnMouse);
 
     }
+    */
 
 }
 void Canvas3d::leftMouseMoveEvent(QMouseEvent *event){//NEED TO FIX
-
+    if(event->pos().x() > clickPosX){
+        model->changeScale(0.02);
+        update();
+    }else if (event->pos().x() < clickPosX){
+        model->changeScale(-0.02);
+        update();
+    }
+    clickPosX = event->pos().x();
+    qDebug() << clickPosX;
+    /*
     QVector2D vec((event->pos()-lastPos).x(), (event->pos()-lastPos).y());
     QVector4D vecZ(0,0, 1, 1);
     QMatrix4x4 R = camera->getRT();
@@ -189,16 +203,14 @@ void Canvas3d::leftMouseMoveEvent(QMouseEvent *event){//NEED TO FIX
 
     double dz =vec.dotProduct(vec, vecLine);
 
-    /* vertex move */
     for(int i = 0; i<verticesSelected.size(); ++i){
         verticesSelected.at(i)->movePosition(QVector3D(0, 0, dz));
     }
-    /* halfedgemove */
 
-    /* face move -> model move*/
     if(facesSelected.size()>0){
         model->moveZ(dz);
     }
+    */
 }
 void Canvas3d::leftMouseReleaseEvent(QMouseEvent *event)
 {
@@ -264,29 +276,50 @@ void Canvas3d::wheelEvent(QWheelEvent *wEvent)
 /* --- Key Press Event --- */
 void Canvas3d::keyPressEvent(QKeyEvent *event)
 {
+
+    if(event->key() == Qt::Key_Shift){
+        isShiftKeyBeenPressing = true;
+    }
+
     if(event->key()==Qt::Key_S){
         //model->makeSubFace();
     }
     if(event->key()==Qt::Key_Space){
-        camera->init();
+        rotateAngle = 45;
+        //camera->init();
     }
 
 
-    static const float theta = 22.5;
+    /*static const float theta = 22.5;
     if(event->key()==Qt::Key_Right){
         model->rotateY(theta);
     }else if(event->key()==Qt::Key_Left){
         model->rotateY(-theta);
     }
+    */
+
     static const float dScale = 0.1;
 //    qDebug()<<"event->key() = "<<event->key();
-    if(event->key()==Qt::Key_Period){
-
+    if(event->key()==Qt::Key_Right && isShiftKeyBeenPressing){
+        rotateAngle += 2;
+        canvas2d->rotateSelectedMirror(float((int)rotateAngle%360));
+    }else if(event->key()==Qt::Key_Left && isShiftKeyBeenPressing){
+        rotateAngle -= 2;
+        canvas2d->rotateSelectedMirror(float((int)rotateAngle%360));
+    }else if(event->key()==Qt::Key_Right){
         model->changeScale(dScale);
-    }else if(event->key()==Qt::Key_Comma){
+    }else if(event->key()==Qt::Key_Left){
         model->changeScale(-dScale);
     }
 
+    update();
+}
+
+void Canvas3d::keyReleaseEvent(QKeyEvent *event)
+{
+    if(event->key() & Qt::Key_Shift){
+        isShiftKeyBeenPressing = false;
+    }
     update();
 }
 
@@ -1757,6 +1790,12 @@ void Canvas3d::edgeCollapseOnInsideReverseFoldBridge(Face3d *bridge){
         }
     }while((he=he->next)!= bridge->halfedge);
 }
+
+// tuika @ 2018
+void Canvas3d::createFukurami(Halfedge2d *he1, Halfedge2d *he2){
+    qDebug() << "OKKKK";
+}
+// tuika end @ 2018
 
 void Canvas3d::createInsideReverseFoldBridge(Halfedge2d *he1, Halfedge2d *he2)
 {

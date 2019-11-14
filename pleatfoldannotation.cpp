@@ -12,7 +12,7 @@ PleatFoldAnnotation::PleatFoldAnnotation(Halfedge2d *_he1, Halfedge2d *_he2, QOb
 {
     setHe1(_he1);
     setHe2(_he2);
-    setColor(QColor(40,120,240));
+    setColor(QColor(255,0,255));
     setSize(he1->getSize()+1);
     setAnnotationName(PLEAT);
 //    // ZOrder
@@ -51,7 +51,7 @@ void PleatFoldAnnotation::setHe2(Halfedge2d *value)
 void PleatFoldAnnotation::draw()
 {
 
-    glLineWidth(getSize());
+    glLineWidth(getSize()*2);
     glColor3d((float)getColor().red()/255, (float)getColor().green()/255, (float)getColor().blue()/255);
     QVector2D sv, ev;
     // edge

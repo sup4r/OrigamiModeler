@@ -12,7 +12,7 @@ SinkFoldAnnotation::SinkFoldAnnotation(Halfedge2d *he, QObject *parent)
     setHe(he);
 //    setSize(he->getSize()+1);
 //    setColor(Qt::gray);
-    setColor(QColor(240, 120, 40));
+    setColor(QColor(0,0,255));
     setAnnotationName(SINK);
 }
 
@@ -48,7 +48,7 @@ void SinkFoldAnnotation::draw()
     glVertex2d(0, -0.5);
     glEnd();
     glPopMatrix();
-    glLineWidth(this->getSize());
+    glLineWidth(getSize()*2);
     glBegin(GL_LINES);
     glVertex2d(he->vertex->x, he->vertex->y);
     glVertex2d(he->next->vertex->x, he->next->vertex->y);

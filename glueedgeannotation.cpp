@@ -8,7 +8,7 @@ GlueEdgeAnnotation::GlueEdgeAnnotation(Halfedge2d *_he, QObject *parent)
     :Annotation(parent)
 {
     setHe(_he);
-    setD(0.9);
+    setD(0.99);
 //    setSize(3);
 //    he->face->fixNormal();
     setAnnotationName(GLUE_E);
@@ -27,14 +27,15 @@ Halfedge2d *GlueEdgeAnnotation::getHe() const
 void GlueEdgeAnnotation::setHe(Halfedge2d *value)
 {
     he = value;
-    setColor(QColor(240,120,120));
+    setColor(QColor(255,0,0));
 //    setSize(he->getSize());
     addHes(value);
 }
 
 void GlueEdgeAnnotation::draw()
 {
-    glLineWidth(getSize());
+    //qDebug() << getSize();
+    glLineWidth(getSize()*2);
     glColor3d((float)getColor().red()/255, (float)getColor().green()/255, (float)getColor().blue()/255);
     glBegin(GL_LINE_STRIP);
     glVertex2d(he->getSV2D().x(), he->getSV2D().y());

@@ -16,7 +16,7 @@ InsideReverseFoldAnnotation::InsideReverseFoldAnnotation(Halfedge2d *_he1, Halfe
     // setting
     setHe1(_he1);
     setHe2(_he2);
-    setColor(QColor(120,120,240));
+    setColor(QColor(0,255,255));
 //    setSize(he1->getSize()+1);
     setAnnotationName(INSIDE);
 //    // ZOrder
@@ -73,7 +73,7 @@ void InsideReverseFoldAnnotation::setHe1(Halfedge2d *value)
 
 void InsideReverseFoldAnnotation::draw()
 {
-    glLineWidth(getSize());
+    glLineWidth(getSize()*2);
     glColor3d((float)getColor().red()/255, (float)getColor().green()/255, (float)getColor().blue()/255);
     QVector2D sv, ev;
     // edge

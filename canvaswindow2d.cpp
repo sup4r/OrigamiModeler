@@ -24,10 +24,10 @@ CanvasWindow2d::CanvasWindow2d(QWidget *parent)
     //dialog->show();
 
     dialog2 = new CanvasDialog2d(canvas, this);
-    dialog2->show();
+    //dialog2->show();
 
     editORDialog = new EditORDialog(this);
-    editORDialog->show();
+    //editORDialog->show();
 
     connect(dialog, SIGNAL(face3dCreated(Face3d*)), this , SIGNAL(face3dCreated(Face3d*)));
     connect(canvas, SIGNAL(face2dCreated(Face2d*)), dialog, SLOT(createCreateFace3dButton(Face2d*)));
@@ -185,23 +185,23 @@ void CanvasWindow2d::createActions()
 
     // ------------------------------------------------------------------------------------------------------------------------ //
     //toolAction = new QAction("Delete", this);
-   // toolActions.push_back(toolAction);
+    //toolActions.push_back(toolAction);
     //connect(toolAction, SIGNAL(triggered(bool)), canvas, SLOT(deleteSelectAnnotations()));
 
     /* layer */
-    //QAction *layerAction = new QAction("Connect Layers", this);
-    //layerActions.push_back(layerAction);
-    //connect(layerAction, SIGNAL(triggered(bool)), canvas, SLOT(createMirrorConnectionBetweenSelectedEdges()));
+    QAction *layerAction = new QAction("Connect Layers", this);
+    layerActions.push_back(layerAction);
+    connect(layerAction, SIGNAL(triggered(bool)), canvas, SLOT(createMirrorConnectionBetweenSelectedEdges()));
 
-    //layerAction = new QAction("Add Layer", this);
-    //layerAction->setShortcut(tr("Ctrl+N"));
-    //layerActions.push_back(layerAction);
-    //connect(layerAction, SIGNAL(triggered(bool)), canvas, SLOT(createPairModelsSlot()));
+    layerAction = new QAction("Add Layer", this);
+    layerAction->setShortcut(tr("Ctrl+N"));
+    layerActions.push_back(layerAction);
+    connect(layerAction, SIGNAL(triggered(bool)), canvas, SLOT(createPairModelsSlot()));
 
-    //layerAction  = new QAction("Trash Layer", this);
-    //layerAction->setShortcut(tr("Delete"));
-    //layerActions.push_back(layerAction);
-    //connect(layerAction, SIGNAL(triggered(bool)), canvas, SLOT(trashCurrentModel()));
+    layerAction  = new QAction("Trash Layer", this);
+    layerAction->setShortcut(tr("Delete"));
+    layerActions.push_back(layerAction);
+    connect(layerAction, SIGNAL(triggered(bool)), canvas, SLOT(trashCurrentModel()));
 
 }
 
@@ -216,11 +216,11 @@ void CanvasWindow2d::createMenus()
     toolMenu = menuBar()->addMenu("&Tool");
     toolMenu->addActions(toolActions.toList());
 
+    layerMenu = menuBar()->addMenu("&Layer");
+    layerMenu->addActions(layerActions.toList());
+
     debugMenu = menuBar()->addMenu("&Debug");
     debugMenu->addActions(debugActions.toList());
-
-    //layerMenu = menuBar()->addMenu("&Layer");
-    //layerMenu->addActions(layerActions.toList());
 }
 
 /* --- private slots --- */
@@ -255,7 +255,7 @@ void CanvasWindow2d::loadImage(){
         canvas->loadImage(filename);
         //qDebug()<<"CanvasWindow2d::loadImage: fileName = "<<fileName;
     }
-    canvas->autoVertex();
+    //canvas->autoVertex();
 }
 
 void CanvasWindow2d::uncheckModeActionsExceptOne(int id)

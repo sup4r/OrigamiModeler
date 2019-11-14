@@ -11,10 +11,10 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = OrigamiLikeModeler2
 TEMPLATE = app
 
-win32:DEPENDPATH  += "C:\dev\opencv-3.0.0\build\include"
-win32:INCLUDEPATH += "C:\dev\opencv-3.0.0\build\include"
-win32:LIBS += -L"C:\dev\opencv-3.0.0\build\x86\vc12\lib"
-win32:LIBS += -lopencv_world300d
+win32:DEPENDPATH  += "C:\dev\opencv-3.1.0\build\include"
+win32:INCLUDEPATH += "C:\dev\opencv-3.1.0\build\include"
+win32:LIBS += -L"C:\dev\opencv-3.1.0\build\x64\vc12\lib"
+win32:LIBS += -lopencv_world310d
 
 SOURCES += main.cpp\
         mainwindow.cpp \

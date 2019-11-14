@@ -13,7 +13,7 @@ PigsLegAnnotation::PigsLegAnnotation(Halfedge2d *_he1, Halfedge2d *_he2, Halfedg
     setHe2(_he2);
     setHe3(_he3);
 //    setColor(Qt::gray);
-    setColor(QColor(120,240, 40));
+    setColor(QColor(255,165,0));
 //    setSize(he1->getSize()+1);
     // ZOrder
     Face3d *f1U = he1->face->getFace3d();
@@ -35,7 +35,7 @@ PigsLegAnnotation::~PigsLegAnnotation()
 
 void PigsLegAnnotation::draw()
 {
-    glLineWidth(getSize());
+    glLineWidth(getSize()*2);
     glColor3d((float)getColor().red()/255, (float)getColor().green()/255, (float)getColor().blue()/255);
     QVector2D sv, ev;
     // edge

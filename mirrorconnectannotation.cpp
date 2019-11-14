@@ -10,14 +10,14 @@ MirrorConnectAnnotation::MirrorConnectAnnotation(QVector<Halfedge2d *> _hes, QOb
 {
     setHes(_hes);
 //    setSize(3);
-    setColor(QColor(240,120,240));
+    setColor(QColor(240,240,50));
     setAnnotationName(MIRROR);
 }
 
 
 void MirrorConnectAnnotation::draw()
 {
-    glLineWidth(getSize());
+    glLineWidth(getSize()*2);
     glColor3d((float)getColor().red()/255, (float)getColor().green()/255, (float)getColor().blue()/255);
     //draw bold edges
     for(int i = 0; i < getHes().size(); ++i){

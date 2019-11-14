@@ -15,7 +15,7 @@ OutsideReverseFoldAnnotation::OutsideReverseFoldAnnotation(Halfedge2d *_he1, Hal
     setHe1(_he1);
     setHe2(_he2);
 
-    setColor(QColor(120,120,240));
+    setColor(QColor(0,255,255));
 //    setColor(QColor(160,160,240));
 //    setSize(he1->getSize()+2);
     setAnnotationName(OUTSIDE);

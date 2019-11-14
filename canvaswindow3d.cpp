@@ -6,7 +6,7 @@
 CanvasWindow3d::CanvasWindow3d(QWidget *parent)
     :CanvasWindowBase(parent)
 {
-    setGeometry(920, 100, 800, 600);
+    setGeometry(900, 100, 800, 600);
     setWindowTitle("CanvasWindow3D");
 
     createCanvas();
@@ -101,7 +101,7 @@ void CanvasWindow3d::createMenus()
     fileMenu = menuBar()->addMenu("&File");
     fileMenu->addAction(exportOBJAction);
     fileMenu->addAction(loadImageAction);
-//    fileMenu->addAction(exportOBJAction2);
+    fileMenu->addAction(exportOBJAction2);
     /* --- View Menu --- */
     viewMenu = menuBar()->addMenu("&View");
     viewMenu->addAction(drawAxisAction);

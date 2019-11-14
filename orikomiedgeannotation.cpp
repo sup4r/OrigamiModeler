@@ -10,9 +10,9 @@ OrikomiEdgeAnnotation::OrikomiEdgeAnnotation(Halfedge2d *_he, QObject *parent)
     :Annotation(parent)
 {
     setHe(_he);
-//    setSize(he->getSize()+1);
+    //setSize(he->getSize()+1);
 //    setColor(Qt::gray);
-    setColor(QColor(240,120,40));
+    setColor(QColor(0,255,0));
     setAnnotationName(ORIKOMI);
 }
 
@@ -30,7 +30,7 @@ void OrikomiEdgeAnnotation::setHe(Halfedge2d *value)
 void OrikomiEdgeAnnotation::draw()
 {
     glColor3d((float)getColor().red()/255, (float)getColor().green()/255, (float)getColor().blue()/255);
-    glLineWidth(getSize());
+    glLineWidth(getSize()*2);
     QVector2D c = he->getCenter();
     float theta = atan2( he->getVec2D().y(),  he->getVec2D().x())*180/M_PI;
     glPushMatrix();
@@ -46,7 +46,7 @@ void OrikomiEdgeAnnotation::draw()
 
     glEnd();
     glPopMatrix();
-    glLineWidth(this->getSize());
+    glLineWidth(getSize()*2);
     glBegin(GL_LINES);
     glVertex2d(he->vertex->x, he->vertex->y);
     glVertex2d(he->next->vertex->x, he->next->vertex->y);

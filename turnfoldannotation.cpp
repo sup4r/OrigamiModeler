@@ -8,6 +8,7 @@
 #include "gldrawutil.h"
 #include <QOpenGLFunctions>
 #include <QVector2D>
+#include <QDebug>
 TurnFoldAnnotation::TurnFoldAnnotation(Halfedge2d *_he1, Halfedge2d *_he2, QObject *parent)
     :Annotation(parent)
 {
@@ -43,7 +44,7 @@ void TurnFoldAnnotation::setHe2(Halfedge2d *value)
 
 void TurnFoldAnnotation::draw()
 {
-    glLineWidth(getSize());
+    glLineWidth(getSize()*30);
     glColor3d((float)getColor().red()/255, (float)getColor().green()/255, (float)getColor().blue()/255);
 //    GLDrawUtil::drawArrow2D(he1->getCenter(), he2->getCenter());
 }
